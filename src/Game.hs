@@ -31,35 +31,50 @@ data GameState
 
 initGameState :: SDL.Renderer -> IO GameState
 initGameState renderer =
-  GameState
-    <$> pure renderer -- gameStateRenderer
-    <*> pure 0.0 -- gameStateTicks
-    <*> SDL.time -- gameStateCurrentTime
-    <*> pure 0.0 -- gameStateAccumulator
+    GameState
+        <$> pure renderer -- gameStateRenderer
+        <*> pure 0.0 -- gameStateTicks
+        <*> SDL.time -- gameStateCurrentTime
+        <*> pure 0.0 -- gameStateAccumulator
 
 run :: IO ()
 run = do
-  -- setting up the window
-  SDL.initializeAll
+    -- setting up the window
+    SDL.initializeAll
 
-  window <- SDL.createWindow "Asteroids" windowConfig
-  renderer <- SDL.createRenderer window (-1) SDL.defaultRenderer
-  state <- initGameState renderer
+    window <- SDL.createWindow "Asteroids" windowConfig
+    renderer <- SDL.createRenderer window (-1) SDL.defaultRenderer
+    state <- initGameState renderer
 
-  loop state
+    loop state
 
-  SDL.destroyRenderer renderer
-  SDL.destroyWindow window
-  SDL.quit
-
+    SDL.destroyRenderer renderer
+    SDL.destroyWindow window
+    SDL.quit
+    
 -- main loop that constantly polling events and rendering things on the screen
 loop :: GameState -> IO ()
 loop state@GameState {..} = do
-  events <- SDL.pollEvents
-  let quit = any isQuit events
-  render gameStateRenderer
-  unless quit (loop state)
+    events <- SDL.pollEvents
+    let quit = any isQuit events
 
+    newTime <- SDL.time 
+    let frameTime   = newTime - gameStateCurrentTime -- total amount of time that has elasped between frames
+        state'      = update state { gameStateCurrentTime = newTime, 
+                            gameStateAccumulator = gameStateAccumulator + frameTime
+                          }
+    render gameStateRenderer
+    unless quit (loop state')
+
+update :: GameState -> GameState
+update state@GameState {..} = 
+    let nextState = state { gameStateAccumulator = gameStateAccumulator - delta
+                            , gameStateTicks = gameStateTicks + delta
+                          } 
+    in
+        if gameStateAccumulator >= delta
+            then state
+            else update nextState
 -- rendering logic
 render :: SDL.Renderer -> IO ()
 render renderer = do
