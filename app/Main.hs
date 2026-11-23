@@ -1,5 +1,5 @@
-moduel Main (main) where
-import Asteroids.Game
+module Main (main) where
+import Game(run)
 
 main :: IO ()
 main = run
